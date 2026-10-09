@@ -17,7 +17,8 @@
   <p class="lead">ガイド線に沿ってマウスを左右に往復させます。往復ごとに軌跡を分析し、ズレ方のクセから姿勢や構えの見直しポイントを提案します。</p>
 
   <div class="controls">
-    <label>感度倍率 <input type="range" id="sens" min="0.2" max="3" step="0.1" value="1"> <output id="sensOut">1.0</output></label>
+    <label>VALORANT 感度 <input type="range" id="sens" min="0.05" max="1.5" step="0.01" value="0.4" aria-label="VALORANT 感度(スライダー)">
+      <input type="number" id="sensNum" min="0.01" max="10" step="0.01" value="0.4" inputmode="decimal" aria-label="VALORANT 感度(数値)"></label>
     <label>利き手
       <select id="hand"><option value="right">右手</option><option value="left">左手</option></select>
     </label>
@@ -40,7 +41,7 @@
     </section>
   </div>
 
-  <p class="note">感度倍率は、ゲーム内で同じ距離を振ったときと同じくらいの振り幅になるよう合わせてください。ブラウザがマウスのロックを許可しない環境では通常のカーソル位置で計測するため、OS のカーソル加速の影響を受けます。アドバイスは軌跡の形から推定した目安です。</p>
+  <p class="note">VALORANT 感度にはゲーム内の値をそのまま入れてください(マウスの DPI もゲームと同じにします)。練習エリアをゲーム画面とみなし、画面中央付近で敵を追うときと同じ腕の動きで、カーソルが画面幅に対して同じ割合だけ動くように換算します。ブラウザがマウスのロックを許可しない環境では通常のカーソル位置で計測するため、OS のカーソル加速の影響を受けます。アドバイスは軌跡の形から推定した目安です。</p>
 </main>
 <noscript><p class="note">このツールの動作には JavaScript が必要です。</p></noscript>
 </body>

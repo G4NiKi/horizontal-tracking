@@ -9,6 +9,8 @@ index.html          ページ本体
 css/style.css
 js/analysis.js      ストローク分割・指標計算・アドバイス判定(DOM 非依存の純粋ロジック)
 js/app.js           描画・入力・画面更新
+js/pictograms.js    アドバイスに添える図(インライン SVG)
+js/sensitivity.js   VALORANT 感度から画面上の移動量への換算
 test/               node --test によるテスト
 ```
 

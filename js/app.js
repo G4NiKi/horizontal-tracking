@@ -1,4 +1,6 @@
 import { StrokeSplitter, isAnalyzable, analyze, advise, avg, strokesNeeded, RECENT } from './analysis.js';
+import { pictogram } from './pictograms.js';
+import { pxPerCount, parseSens, SENS_DEFAULT } from './sensitivity.js';
 
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
@@ -27,10 +29,11 @@ const splitter = new StrokeSplitter((pts, dir) => {
 
 /* ---------- settings ---------- */
 function loadSettings() {
-  const d = { sens: 1, hand: 'right' };
+  // sens is the VALORANT in-game sensitivity (the old pixel multiplier key "sens" is ignored)
+  const d = { valSens: SENS_DEFAULT, hand: 'right' };
   try {
     const s = JSON.parse(localStorage.getItem('ht-settings') || '{}');
-    if (typeof s.sens === 'number' && s.sens > 0) d.sens = s.sens;
+    if (parseSens(s.valSens) !== null) d.valSens = s.valSens;
     if (s.hand === 'left' || s.hand === 'right') d.hand = s.hand;
   } catch { /* ignore when storage is unavailable */ }
   return d;
@@ -130,7 +133,7 @@ function render() {
 
   const items = advise(recent, settings.hand);
   $('advice').innerHTML = items
-    ? '<ul class="advice">' + items.map(i => `<li class="${i.ok ? 'ok' : ''}"><strong>${i.t}</strong><span>${i.b}</span></li>`).join('') + '</ul>'
+    ? '<ul class="advice">' + items.map(i => `<li class="${i.ok ? 'ok' : ''}"><strong>${i.t}</strong>${pictogram(i, settings.hand)}<span>${i.b}</span></li>`).join('') + '</ul>'
     : `<p class="empty">分析にはあと ${strokesNeeded(recent)} 本ほど必要です。左右に大きく往復してください。</p>`;
 }
 
@@ -197,8 +200,9 @@ document.addEventListener('pointerlockchange', () => {
 document.addEventListener('mousemove', e => {
   if (!active) return;
   if (mode === 'lock' && document.pointerLockElement === cv) {
-    vx = Math.max(0, Math.min(W, vx + e.movementX * settings.sens));
-    vy += e.movementY * settings.sens;
+    const k = pxPerCount(settings.valSens, W);
+    vx = Math.max(0, Math.min(W, vx + e.movementX * k));
+    vy += e.movementY * k;
   } else if (mode === 'free' && e.target === cv) {
     vx = e.offsetX; vy = e.offsetY - H / 2;
   } else return;
@@ -216,15 +220,22 @@ document.addEventListener('keydown', e => {
 });
 
 /* ---------- controls ---------- */
-const sensEl = $('sens'), handEl = $('hand');
-sensEl.value = settings.sens; $('sensOut').textContent = settings.sens.toFixed(1);
+const sensEl = $('sens'), sensNum = $('sensNum'), handEl = $('hand');
+sensEl.value = sensNum.value = settings.valSens;
 handEl.value = settings.hand;
 
-sensEl.addEventListener('input', () => {
-  settings.sens = parseFloat(sensEl.value);
-  $('sensOut').textContent = settings.sens.toFixed(1);
+function setSens(v, from) {
+  const n = parseSens(v);
+  sensNum.classList.toggle('invalid', n === null);
+  if (n === null) return;
+  settings.valSens = n;
+  if (from !== sensEl) sensEl.value = n;
+  if (from !== sensNum) sensNum.value = n;
   saveSettings();
-});
+}
+sensEl.addEventListener('input', () => setSens(sensEl.value, sensEl));
+sensNum.addEventListener('input', () => setSens(sensNum.value, sensNum));
+sensNum.addEventListener('change', () => { sensNum.classList.remove('invalid'); sensNum.value = settings.valSens; });
 handEl.addEventListener('change', () => {
   settings.hand = handEl.value;
   saveSettings();

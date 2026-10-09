@@ -139,3 +139,27 @@ test('advise: detects deviation that increases with speed', () => {
   }
   assert.ok(ids(advise(strokes)).includes('speed'));
 });
+
+test('every advice id has a pictogram', async () => {
+  const { PICTOGRAM_IDS, pictogram } = await import('../js/pictograms.js');
+  const ids = ['bow-up', 'bow-down', 'tilt', 'creep-up', 'creep-down', 'side-out', 'side-in', 'jitter', 'speed', 'ok'];
+  assert.deepEqual([...PICTOGRAM_IDS].sort(), [...ids].sort());
+  for (const id of ids) for (const hand of ['right', 'left']) {
+    const svg = pictogram({ id, tilt: -2 }, hand);
+    assert.match(svg, /^<svg [^>]*>.*<\/svg>$/s);
+    assert.doesNotMatch(svg, /NaN|undefined/);
+  }
+});
+
+test('VALORANT sensitivity converts to pixels per count', async () => {
+  const { pxPerCount, parseSens } = await import('../js/sensitivity.js');
+  // half the screen width corresponds to tan(51.5°) radians at the center: 39.6° of yaw
+  const W = 1000, k = pxPerCount(1, W);
+  const deg = (W / 2) / k * 0.07;
+  assert.ok(Math.abs(deg - Math.tan(51.5 * Math.PI / 180) * 180 / Math.PI) < 1e-9);
+  assert.ok(Math.abs(pxPerCount(0.5, W) - k / 2) < 1e-12);
+  assert.equal(parseSens('0,35'), 0.35);
+  assert.equal(parseSens(''), null);
+  assert.equal(parseSens(0), null);
+  assert.equal(parseSens(11), null);
+});

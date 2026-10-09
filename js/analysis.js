@@ -167,7 +167,7 @@ export function strokesNeeded(recent) {
 /**
  * Infers the user's habits from recent strokes and returns advice items.
  * Returns null when there are too few strokes.
- * @returns {{id:string,t:string,b:string,ok?:boolean}[]|null}
+ * @returns {{id:string,t:string,b:string,ok?:boolean,tilt?:number}[]|null}
  */
 export function advise(recent, hand = 'right') {
   if (strokesNeeded(recent) > 0) return null;
@@ -182,7 +182,7 @@ export function advise(recent, hand = 'right') {
     b: '振りの途中で腕を手前に引き込んでいます。脇を締めすぎて腕が体に当たっている可能性があります。脇を拳ひとつ分ほど開け、マウスパッドを少し利き手側に寄せてみてください。' });
 
   const tilt = avg(all, 'tilt');
-  if (Math.abs(tilt) > 1.5) out.push({ id: 'tilt', t: `往復とも${tilt > 0 ? '右上がり' : '右下がり'}に約 ${Math.abs(tilt).toFixed(1)}° 傾いています`,
+  if (Math.abs(tilt) > 1.5) out.push({ id: 'tilt', tilt, t: `往復とも${tilt > 0 ? '右上がり' : '右下がり'}に約 ${Math.abs(tilt).toFixed(1)}° 傾いています`,
     b: '左右どちらに振っても同じ向きに傾くのは、腕の動く方向と画面の横軸が揃っていないサインです。手の中でマウスが斜めに回っていないか、マウスパッドの向き、体がモニターの正面を向いているかを確認してください。椅子をモニター正面に戻すだけで直ることもあります。' });
 
   // tilt cancels out across round trips, so look at the drift between the start and end points separately
