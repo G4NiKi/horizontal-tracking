@@ -32,15 +32,18 @@ canvas{display:block;width:100%;height:380px;cursor:crosshair}
 .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:16px}
 .overlay div{background:var(--panel);border:1px solid var(--line);padding:14px 20px;border-radius:6px;font-size:.92rem}
 .overlay.hidden{display:none}
-.block{margin-top:28px}
-h2{font-size:1.05rem;margin:0 0 10px;font-weight:600}
+.block{margin-top:48px}
+.stage + .block{margin-top:36px}
+main > .note{margin-top:40px}
+h2{font-size:1.05rem;line-height:1.3;margin:0 0 8px;font-weight:600}
 .tablewrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
 th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 thead th{font-weight:600;color:var(--muted)}
 .advice{list-style:none;margin:0;padding:0}
-.advice li{padding:10px 14px;border-left:3px solid var(--trace);margin-bottom:10px;background:var(--panel)}
+.advice li{padding:10px 14px;border-left:3px solid var(--trace);margin-bottom:8px;background:var(--panel)}
+.advice li:last-child{margin-bottom:0}
 .advice li.ok{border-left-color:var(--good)}
 .advice li{display:grid;grid-template-columns:minmax(0,340px) 1fr;grid-template-areas:"pg t" "pg b";grid-template-rows:auto 1fr;column-gap:20px}
 .advice strong{grid-area:t;display:block;font-weight:600;margin-bottom:3px}
