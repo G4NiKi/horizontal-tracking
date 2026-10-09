@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>水平トラッキング練習</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#eef1ef;--panel:#f8faf9;--grid:#dce2df;--ink:#1f2d3a;--muted:#56646c;
+  --guide:#2b4c7e;--trace:#d9480f;--good:#2f7d5b;--line:#c7d0cb;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#1a2026;--panel:#222a31;--grid:#28313a;--ink:#e3e8ea;--muted:#9aa7ae;
+    --guide:#86aee6;--trace:#ff7f50;--good:#5fc192;--line:#36414a;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1a2026;--panel:#222a31;--grid:#28313a;--ink:#e3e8ea;--muted:#9aa7ae;
+  --guide:#86aee6;--trace:#ff7f50;--good:#5fc192;--line:#36414a;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans JP","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;line-height:1.65}
+main{max-width:1100px;margin:0 auto;padding:28px 20px 56px}
+h1{font-size:1.7rem;margin:0 0 4px;font-weight:600;letter-spacing:.02em}
+.lead{margin:0;color:var(--muted);font-size:.93rem;max-width:70ch}
+.controls{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center;margin:22px 0 12px;font-size:.9rem}
+.controls label{display:flex;gap:8px;align-items:center}
+input[type=range]{width:150px;accent-color:var(--guide)}
+select,button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 12px}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,canvas:focus-visible{outline:2px solid var(--guide);outline-offset:2px}
+.stage{position:relative;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+canvas{display:block;width:100%;height:380px;cursor:crosshair}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:16px}
+.overlay div{background:var(--panel);border:1px solid var(--line);padding:14px 20px;border-radius:6px;font-size:.92rem}
+.overlay.hidden{display:none}
+.cols{display:grid;grid-template-columns:5fr 6fr;gap:28px;margin-top:28px}
+@media (max-width:780px){.cols{grid-template-columns:1fr}}
+h2{font-size:1.05rem;margin:0 0 10px;font-weight:600}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:600;color:var(--muted)}
+.advice{list-style:none;margin:0;padding:0}
+.advice li{padding:10px 14px;border-left:3px solid var(--trace);margin-bottom:10px;background:var(--panel)}
+.advice li.ok{border-left-color:var(--good)}
+.advice strong{display:block;font-weight:600;margin-bottom:3px}
+.advice span{font-size:.9rem;color:var(--muted)}
+.empty{color:var(--muted);font-size:.92rem;margin:0}
+.note{font-size:.82rem;color:var(--muted);margin-top:14px;max-width:80ch}
+</style>
+</head>
+<body>
+<main>
+  <h1>水平トラッキング練習</h1>
+  <p class="lead">ガイド線に沿ってマウスを左右に往復させます。往復ごとに軌跡を分析し、ズレ方のクセから姿勢や構えの見直しポイントを提案します。</p>
+
+  <div class="controls">
+    <label>感度倍率 <input type="range" id="sens" min="0.2" max="3" step="0.1" value="1"> <output id="sensOut">1.0</output></label>
+    <label>利き手
+      <select id="hand"><option value="right">右手</option><option value="left">左手</option></select>
+    </label>
+    <button id="reset">記録をリセット</button>
+  </div>
+
+  <div class="stage">
+    <canvas id="cv" tabindex="0" aria-label="練習エリア。クリックで開始"></canvas>
+    <div class="overlay" id="ov"><div id="ovText">クリックして開始<br>Space で線に戻る / Esc で終了</div></div>
+  </div>
+
+  <div class="cols">
+    <section>
+      <h2>計測値</h2>
+      <div class="tablewrap" id="stats"><p class="empty">まだ記録がありません。</p></div>
+    </section>
+    <section>
+      <h2>アドバイス</h2>
+      <div id="advice"><p class="empty">左右に6往復ほどすると、クセの分析が表示されます。</p></div>
+    </section>
+  </div>
+
+  <p class="note">感度倍率は、ゲーム内で同じ距離を振ったときと同じくらいの振り幅になるよう合わせてください。ブラウザがマウスのロックを許可しない環境では通常のカーソル位置で計測するため、OS のカーソル加速の影響を受けます。アドバイスは軌跡の形から推定した目安です。</p>
+</main>
+
+<script>
+(function(){
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const ov=document.getElementById('ov'),ovText=document.getElementById('ovText');
+let W=0,H=380,colors={};
+let vx=0,vy=0,mode='none',active=false;
+let cur=null,past=[],strokes=[];
+let sens=1,hand='right';
+const REV=12;
+
+function readColors(){
+  const s=getComputedStyle(document.documentElement);
+  ['paper','grid','ink','muted','guide','trace'].forEach(k=>colors[k]=s.getPropertyValue('--'+k).trim());
+}
+function resize(){
+  const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  W=r.width;H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);
+  ctx.setTransform(d,0,0,d,0,0);
+  if(!vx||vx>W)vx=W/2;
+  draw();
+}
+
+function path(pts,cy){
+  if(pts.length<2)return;
+  ctx.beginPath();ctx.moveTo(pts[0].x,cy+pts[0].y);
+  for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,cy+pts[i].y);
+  ctx.stroke();
+}
+function draw(){
+  if(!W)return;
+  const cy=H/2;
+  ctx.fillStyle=colors.paper;ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle=colors.grid;ctx.lineWidth=1;ctx.beginPath();
+  for(let x=W/2%40;x<W;x+=40){ctx.moveTo(Math.round(x)+.5,0);ctx.lineTo(Math.round(x)+.5,H);}
+  for(let y=cy%40;y<H;y+=40){ctx.moveTo(0,Math.round(y)+.5);ctx.lineTo(W,Math.round(y)+.5);}
+  ctx.stroke();
+  ctx.globalAlpha=.1;ctx.fillStyle=colors.guide;ctx.fillRect(0,cy-10,W,20);ctx.globalAlpha=1;
+  ctx.strokeStyle=colors.guide;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.stroke();
+  ctx.strokeStyle=colors.trace;ctx.lineJoin='round';
+  ctx.lineWidth=1.5;
+  past.forEach((p,i)=>{ctx.globalAlpha=.12+.07*i;path(p,cy);});
+  ctx.globalAlpha=1;ctx.lineWidth=2.5;
+  if(cur)path(cur.pts,cy);
+  if(active){
+    ctx.fillStyle=colors.ink;ctx.beginPath();ctx.arc(vx,cy+vy,4,0,Math.PI*2);ctx.fill();
+    ctx.font='13px "IBM Plex Sans JP",sans-serif';ctx.fillStyle=colors.muted;
+    const d=Math.round(Math.abs(vy));
+    ctx.fillText(d===0?'ズレ 0px':`ズレ ${vy<0?'上':'下'} ${d}px`,12,22);
+  }
+}
+
+function solve3(A,b){
+  const M=A.map((r,i)=>[...r,b[i]]);
+  for(let i=0;i<3;i++){
+    let p=i;for(let r=i+1;r<3;r++)if(Math.abs(M[r][i])>Math.abs(M[p][i]))p=r;
+    [M[i],M[p]]=[M[p],M[i]];
+    if(Math.abs(M[i][i])<1e-9)return[0,0,0];
+    for(let r=0;r<3;r++)if(r!==i){const f=M[r][i]/M[i][i];for(let c=i;c<4;c++)M[r][c]-=f*M[i][c];}
+  }
+  return[M[0][3]/M[0][0],M[1][3]/M[1][1],M[2][3]/M[2][2]];
+}
+
+function analyze(pts,dir,span){
+  const n=pts.length;
+  let xmin=Infinity;pts.forEach(p=>{if(p.x<xmin)xmin=p.x;});
+  const xmid=xmin+span/2,half=span/2;
+  let sAbs=0,max=0;
+  const S=[0,0,0,0,0],T=[0,0,0];
+  pts.forEach(p=>{
+    const a=Math.abs(p.y);sAbs+=a;if(a>max)max=a;
+    const u=(p.x-xmid)/half;let uk=1;
+    for(let k=0;k<5;k++){S[k]+=uk;if(k<3)T[k]+=p.y*uk;uk*=u;}
+  });
+  const [,b,c]=solve3([[S[0],S[1],S[2]],[S[1],S[2],S[3]],[S[2],S[3],S[4]]],T);
+  const tilt=Math.atan(-b/half)*180/Math.PI;
+  let sq=0;const w=3;
+  for(let i=0;i<n;i++){
+    let s=0,m=0;
+    for(let j=Math.max(0,i-w);j<=Math.min(n-1,i+w);j++){s+=pts[j].y;m++;}
+    sq+=(pts[i].y-s/m)**2;
+  }
+  const dur=(pts[n-1].t-pts[0].t)/1000;
+  const dy=pts[n-1].y-pts[0].y;
+  return{dir,span,mean:sAbs/n,max,tilt,bow:c,bowR:c/span,jitter:Math.sqrt(sq/n),
+    speed:dur>0?span/dur:0,dyR:dy/span};
+}
+
+function finish(pts,dir){
+  let lo=Infinity,hi=-Infinity;pts.forEach(p=>{if(p.x<lo)lo=p.x;if(p.x>hi)hi=p.x;});
+  const span=hi-lo;
+  past.push(pts);if(past.length>6)past.shift();
+  if(span<W*.3||pts.length<15)return;
+  strokes.push(analyze(pts,dir,span));
+  if(strokes.length>60)strokes.shift();
+  render();
+}
+
+function track(x,y,t){
+  const p={x,y,t};
+  if(!cur){cur={dir:0,pts:[p],ext:x,extI:0};return;}
+  cur.pts.push(p);
+  if(cur.pts.length>6000)cur.pts.shift();
+  if(cur.dir===0){
+    const d=x-cur.pts[0].x;
+    if(Math.abs(d)>REV){cur.dir=Math.sign(d);cur.ext=x;cur.extI=cur.pts.length-1;}
+    return;
+  }
+  if((x-cur.ext)*cur.dir>0){cur.ext=x;cur.extI=cur.pts.length-1;}
+  else if((cur.ext-x)*cur.dir>REV){
+    const seg=cur.pts.slice(0,cur.extI+1),rest=cur.pts.slice(cur.extI);
+    const nd=-cur.dir;
+    finish(seg,cur.dir);
+    cur={dir:nd,pts:rest,ext:x,extI:rest.length-1};
+  }
+}
+
+/* ---------- stats & advice ---------- */
+const avg=(a,k)=>a.length?a.reduce((s,o)=>s+o[k],0)/a.length:NaN;
+const f1=v=>isNaN(v)?'—':v.toFixed(1);
+const f0=v=>isNaN(v)?'—':Math.round(v).toString();
+const sg=v=>isNaN(v)?'—':(v>0?'+':'')+v.toFixed(1);
+
+function render(){
+  const recent=strokes.slice(-20);
+  const last=strokes[strokes.length-1];
+  const outDir=hand==='right'?1:-1;
+  const R=recent.filter(s=>s.dir>0),L=recent.filter(s=>s.dir<0);
+  const rl=outDir>0?'右へ(外側)':'右へ(内側)',ll=outDir>0?'左へ(内側)':'左へ(外側)';
+  const rows=[
+    ['平均ズレ (px)','mean',f1],['最大ズレ (px)','max',f1],
+    ['傾き (°、+は右上がり)','tilt',sg],['弧 (px、+は上に凸)','bow',sg],
+    ['震え (px)','jitter',f1],['速度 (px/秒)','speed',f0]
+  ];
+  let h='<table><thead><tr><th></th><th>直前の1本</th><th>'+rl+'</th><th>'+ll+'</th></tr></thead><tbody>';
+  rows.forEach(([lab,k,fmt])=>{h+=`<tr><td>${lab}</td><td>${fmt(last[k])}</td><td>${fmt(avg(R,k))}</td><td>${fmt(avg(L,k))}</td></tr>`;});
+  h+=`</tbody></table><p class="note">直近 ${recent.length} 本の平均(全 ${strokes.length} 本)</p>`;
+  document.getElementById('stats').innerHTML=h;
+
+  const box=document.getElementById('advice');
+  const items=advise(recent,R,L,outDir);
+  if(!items){
+    const need=Math.max(0,6-recent.length);
+    box.innerHTML=`<p class="empty">分析にはあと ${need||'左右それぞれ数'} 本ほど必要です。左右に大きく往復してください。</p>`;
+    return;
+  }
+  box.innerHTML='<ul class="advice">'+items.map(i=>`<li class="${i.ok?'ok':''}"><strong>${i.t}</strong><span>${i.b}</span></li>`).join('')+'</ul>';
+}
+
+function pearson(a,b){
+  const n=a.length,ma=a.reduce((s,v)=>s+v,0)/n,mb=b.reduce((s,v)=>s+v,0)/n;
+  let sab=0,saa=0,sbb=0;
+  for(let i=0;i<n;i++){const x=a[i]-ma,y=b[i]-mb;sab+=x*y;saa+=x*x;sbb+=y*y;}
+  return saa&&sbb?sab/Math.sqrt(saa*sbb):0;
+}
+
+function advise(all,R,L,outDir){
+  if(all.length<6||R.length<2||L.length<2)return null;
+  const out=[];
+  const bowR=avg(all,'bowR');
+  if(bowR>.015)out.push({t:'軌跡が上向きの弧(∩)になっています',
+    b:'手首や肘を支点にして腕を「振って」いるときの典型的な形です。支点を固定せず、腕全体を左右に平行移動させる意識で動かしてみてください。肘がデスクの縁に当たって支点になっている場合は、椅子を少し上げるか、マウスパッドを手前に寄せて前腕をデスクに乗せると直線を引きやすくなります。'});
+  else if(bowR<-.015)out.push({t:'軌跡が下向きの弧(∪)になっています',
+    b:'振りの途中で腕を手前に引き込んでいます。脇を締めすぎて腕が体に当たっている可能性があります。脇を拳ひとつ分ほど開け、マウスパッドを少し利き手側に寄せてみてください。'});
+
+  const tilt=avg(all,'tilt');
+  if(Math.abs(tilt)>1.5)out.push({t:`往復とも${tilt>0?'右上がり':'右下がり'}に約 ${Math.abs(tilt).toFixed(1)}° 傾いています`,
+    b:'左右どちらに振っても同じ向きに傾くのは、腕の動く方向と画面の横軸が揃っていないサインです。手の中でマウスが斜めに回っていないか、マウスパッドの向き、体がモニターの正面を向いているかを確認してください。椅子をモニター正面に戻すだけで直ることもあります。'});
+
+  const creep=avg(all,'dyR');
+  if(Math.abs(creep)>.02)out.push(creep<0
+    ?{t:'往復するたびに上へずれていきます',b:'手が少しずつ奥へ出ていく癖です。上体が前のめりになると起こりやすいので、椅子に深く座り、往復のたびに肘を同じ位置へ戻す意識を持ってください。'}
+    :{t:'往復するたびに下へずれていきます',b:'手が少しずつ体の側へ戻ってくる癖です。腕を引き寄せる力が入っています。脇を締めすぎていないか、マウスパッドが体に近すぎないかを確認してください。'});
+
+  const O=all.filter(s=>s.dir===outDir),I=all.filter(s=>s.dir!==outDir);
+  const eo=avg(O,'mean')+avg(O,'jitter'),ei=avg(I,'mean')+avg(I,'jitter');
+  if(eo>ei*1.4&&eo-ei>2)out.push({t:'体の外側へ振るときに崩れています',
+    b:'腕が伸びきったり、肘が浮いたりすると起こりやすい崩れです。マウスパッドを体の正面寄りに置き、外側へ振っても肘が体から離れすぎない位置関係にしてみてください。椅子が低いと外側で肩が上がりやすいので、肘とデスクがほぼ同じ高さになるよう調整するのも有効です。'});
+  else if(ei>eo*1.4&&ei-eo>2)out.push({t:'体の内側へ引くときに崩れています',
+    b:'腕が体や椅子のアームレストに当たって軌道が曲がっている可能性があります。脇を少し開ける、マウスパッドを利き手側へ少し離す、アームレストを下げるか外す、を試してください。'});
+
+  const jit=avg(all,'jitter');
+  if(jit>1.8)out.push({t:'軌跡が細かく震えています',
+    b:'握りが強すぎるか、腕が宙に浮いて支えがないと起こりやすい症状です。マウスは軽く包む程度に握り、前腕をデスクかパッドに乗せて動かしてみてください。椅子の高さは、肘を90°前後に曲げたとき前腕がデスクと水平になる位置が目安です。'});
+
+  if(all.length>=8){
+    const r=pearson(all.map(s=>s.speed),all.map(s=>s.mean));
+    if(r>.5)out.push({t:'速く振るほどズレが大きくなっています',
+      b:'まずはズレが帯(±10px)の中に収まる速度まで落として往復し、安定してから少しずつ速度を上げていくのが近道です。'});
+  }
+  if(!out.length)out.push({ok:true,t:'目立ったクセはありません',
+    b:`平均ズレは ${avg(all,'mean').toFixed(1)}px です。速度を上げるか、感度倍率を下げて振り幅を大きくし、負荷をかけてみてください。`});
+  return out;
+}
+
+/* ---------- input ---------- */
+function setOverlay(){
+  if(active){ov.classList.add('hidden');return;}
+  ov.classList.remove('hidden');
+  ovText.innerHTML=matchMedia('(pointer: fine)').matches
+    ?'クリックして開始<br>Space で線に戻る / Esc で終了'
+    :'マウスを接続した PC で開いてください';
+}
+function resetPos(){vx=W/2;vy=0;cur=null;draw();}
+function startFree(){mode='free';active=true;cur=null;setOverlay();draw();}
+
+async function lock(){
+  try{await cv.requestPointerLock({unadjustedMovement:true});}
+  catch(e){try{await cv.requestPointerLock();}catch(e2){startFree();}}
+}
+cv.addEventListener('click',()=>{
+  if(active)return;
+  if(cv.requestPointerLock)lock();else startFree();
+});
+document.addEventListener('pointerlockchange',()=>{
+  if(document.pointerLockElement===cv){mode='lock';active=true;resetPos();}
+  else if(mode==='lock'){active=false;cur=null;draw();}
+  setOverlay();
+});
+document.addEventListener('pointerlockerror',()=>{if(!active)startFree();});
+
+document.addEventListener('mousemove',e=>{
+  if(!active)return;
+  const t=performance.now();
+  if(mode==='lock'&&document.pointerLockElement===cv){
+    vx=Math.max(0,Math.min(W,vx+e.movementX*sens));
+    vy=Math.max(-H/2+4,Math.min(H/2-4,vy+e.movementY*sens));
+  }else if(mode==='free'&&e.target===cv){
+    vx=e.offsetX;vy=e.offsetY-H/2;
+  }else return;
+  track(vx,vy,t);draw();
+});
+document.addEventListener('keydown',e=>{
+  if(!active)return;
+  if(e.code==='Space'){e.preventDefault();if(mode==='lock'){vy=0;cur=null;draw();}}
+  if(e.code==='Escape'&&mode==='free'){active=false;cur=null;setOverlay();draw();}
+});
+
+document.getElementById('sens').addEventListener('input',e=>{
+  sens=parseFloat(e.target.value);document.getElementById('sensOut').textContent=sens.toFixed(1);
+});
+document.getElementById('hand').addEventListener('change',e=>{hand=e.target.value;if(strokes.length)render();});
+document.getElementById('reset').addEventListener('click',()=>{
+  strokes=[];past=[];cur=null;
+  document.getElementById('stats').innerHTML='<p class="empty">まだ記録がありません。</p>';
+  document.getElementById('advice').innerHTML='<p class="empty">左右に6往復ほどすると、クセの分析が表示されます。</p>';
+  draw();
+});
+
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{readColors();draw();});
+new MutationObserver(()=>{readColors();draw();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+window.addEventListener('resize',resize);
+readColors();resize();setOverlay();
+})();
+</script>
+</body>
+</html>

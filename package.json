@@ -1,0 +1,9 @@
+{
+  "name": "horizontal-tracking",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "serve": "npx --yes serve ."
+  }
+}
