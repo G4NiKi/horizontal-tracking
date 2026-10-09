@@ -95,7 +95,10 @@ function drawNow() {
     ctx.font = '13px "IBM Plex Sans JP",sans-serif'; ctx.fillStyle = colors.muted;
     const d = Math.round(Math.abs(vy));
     ctx.fillText(d === 0 ? 'ズレ 0px' : `ズレ ${vy < 0 ? '上' : '下'} ${d}px`, 12, 22);
-    if (mode === 'free') ctx.fillText('通常カーソルで計測中(Esc で終了)', 12, H - 12);
+    // The overlay is hidden while running, so keep the controls visible on the canvas
+    ctx.textAlign = 'right';
+    ctx.fillText(mode === 'lock' ? 'Esc で終了 / Space で線に戻る' : '通常カーソルで計測中 / Esc で終了', W - 12, 22);
+    ctx.textAlign = 'left';
   }
 }
 
