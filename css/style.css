@@ -32,8 +32,7 @@ canvas{display:block;width:100%;height:380px;cursor:crosshair}
 .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:16px}
 .overlay div{background:var(--panel);border:1px solid var(--line);padding:14px 20px;border-radius:6px;font-size:.92rem}
 .overlay.hidden{display:none}
-.cols{display:grid;grid-template-columns:5fr 6fr;gap:28px;margin-top:28px}
-@media (max-width:780px){.cols{grid-template-columns:1fr}}
+.block{margin-top:28px}
 h2{font-size:1.05rem;margin:0 0 10px;font-weight:600}
 .tablewrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
@@ -43,11 +42,15 @@ thead th{font-weight:600;color:var(--muted)}
 .advice{list-style:none;margin:0;padding:0}
 .advice li{padding:10px 14px;border-left:3px solid var(--trace);margin-bottom:10px;background:var(--panel)}
 .advice li.ok{border-left-color:var(--good)}
-.advice strong{display:block;font-weight:600;margin-bottom:3px}
+.advice li{display:grid;grid-template-columns:minmax(0,340px) 1fr;grid-template-areas:"pg t" "pg b";grid-template-rows:auto 1fr;column-gap:20px}
+.advice strong{grid-area:t;display:block;font-weight:600;margin-bottom:3px}
+.advice .pg{grid-area:pg;align-self:start}
+.advice li>span{grid-area:b}
+@media (max-width:700px){.advice li{grid-template-columns:1fr;grid-template-rows:auto;grid-template-areas:"t" "pg" "b"}}
 .advice span{font-size:.9rem;color:var(--muted)}
 .empty{color:var(--muted);font-size:.92rem;margin:0}
 .note{font-size:.82rem;color:var(--muted);margin-top:14px;max-width:80ch}
-.advice .pg{display:block;width:100%;max-width:340px;height:auto;margin:8px 0 6px}
+.advice .pg{display:block;width:100%;max-width:340px;height:auto;margin:2px 0 6px}
 .pg *{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .pg-panel{fill:var(--paper)!important;stroke:var(--line)}
 .pg-guide{stroke:var(--guide);stroke-width:1.4;stroke-dasharray:4 3}
